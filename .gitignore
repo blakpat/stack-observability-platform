@@ -1,0 +1,31 @@
+# Datos y Logs
+opensearch_data/
+grafana_data/
+prometheus_data/
+logs/
+*.log
+
+# Archivos de Sistema y Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Binarios grandes
+*.msi
+*.exe
+*.zip
+*.tar.gz
+
+# Credenciales y configuración local
+.env
+*.key
+*.pem
+
+# Backups del script de despliegue
+backups/
+*.bak
+
+# Dashboards importados automáticamente
+Grafana/provisioning/dashboards/imported/

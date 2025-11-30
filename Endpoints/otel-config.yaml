@@ -1,0 +1,40 @@
+#Arrancar el servicio desde "C:\Program Files (x86)\OpenTelemetry Collector" abrir un cmd
+#  ---> .\otelcol-contrib.exe --config="C:\ProgramData\otel-config.yaml"
+
+receivers:
+  filelog:
+    include:
+      - "C:/logstest.*"
+    start_at: end
+    include_file_name: true
+    include_file_path: true
+    encoding: utf-8
+    operators:
+      - type: regex_parser
+        regex: '(?P<timestamp_str>\d{4}.\d{2}.\d{2}.\d{2}.\d{2}.\d{2})'
+        timestamp:
+          parse_from: attributes.timestamp_str
+          layout: '%Y-%m-%d %H:%M:%S'
+
+processors:
+  batch: {}
+
+exporters:
+  opensearch:
+    logs_index: "server-windows-logs"
+    http:
+      endpoint: "http://change_me:9200"
+      tls:
+        insecure: true
+
+extensions:
+  file_storage:
+    directory: "C:/ot_storage"
+
+service:
+  extensions: [file_storage]
+  pipelines:
+    logs:
+      receivers: [filelog]
+      processors: [batch]
+      exporters: [opensearch]
