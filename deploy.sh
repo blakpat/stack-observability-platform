@@ -9,6 +9,12 @@
 
 set -e  # Detener ejecución si hay algún error
 
+# Función de cleanup para archivos temporales
+cleanup() {
+    rm -f docker-compose.tmp.yml docker-compose.new.yml *.bak Endpoints/*.bak Grafana/*.bak 2>/dev/null || true
+}
+trap cleanup EXIT
+
 # Colores para output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -40,11 +46,16 @@ print_error() {
 # Función para validar IP
 validate_ip() {
     local ip=$1
-    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+    if [[ $ip =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        IFS='.' read -ra ADDR <<< "$ip"
+        for i in "${ADDR[@]}"; do
+            if [[ $i -gt 255 ]]; then
+                return 1
+            fi
+        done
         return 0
-    else
-        return 1
     fi
+    return 1
 }
 
 # Parsear argumentos
@@ -64,14 +75,30 @@ done
 # Banner
 echo -e "${GREEN}"
 cat << "EOF"
-╔═══════════════════════════════════════════════════════════╗
-║     OBSERVABILITY PLATFORM - DEPLOYMENT SCRIPT            ║
-║     Stack con OpenSearch HA Cluster + Nginx LB            ║
-╚═══════════════════════════════════════════════════════════╝
+--------------------------------------------------------------
+   ___  _                                        
+  / _ \| |__  ___  ___ _ ____   ____ _| |__ (_) (_) |_ _   _  
+ | | | | '_ \/ __|/ _ \ '__\ \ / / _` | '_ \| | | | __| | | | 
+ | |_| | |_) \__ \  __/ |   \ V / (_| | |_) | | | | |_| |_| | 
+  \___/|_.__/|___/\___|_|    \_/ \__,_|_.__/|_|_|_|\__|\__, | 
+                                                        |___/  
+     ____  _       _    __                         
+    |  _ \| | __ _| |_ / _| ___  _ __ _ __ ___     
+    | |_) | |/ _` | __| |_ / _ \| '__| '_ ` _ \    
+    |  __/| | (_| | |_|  _| (_) | |  | | | | | |   
+    |_|   |_|\__,_|\__|_|  \___/|_|  |_| |_| |_|  by @blakpat
+ --------------------------------------------------------------                                                   
+  ╔════════════════════════════════════════════════════════╗
+  ║  Stack: OpenSearch HA + Prometheus + Grafana + OTel    ║
+  ║  Deployment Script v1.0                                ║
+  ╚════════════════════════════════════════════════════════╝
 EOF
 echo -e "${NC}"
 
-# Verificar que docker y docker-compose estén instalados
+# =============================================================================
+# ETAPA 1: VERIFICACIÓN DE DEPENDENCIAS
+# =============================================================================
+
 print_info "Verificando dependencias..."
 
 if ! command -v docker &> /dev/null; then
@@ -86,7 +113,10 @@ fi
 
 print_success "Docker y Docker Compose están instalados"
 
-# Lógica para modo AUTO
+# =============================================================================
+# ETAPA 2: CARGA DE CONFIGURACIÓN
+# =============================================================================
+
 if [ "$AUTO_MODE" = true ]; then
     print_info "Modo AUTOMÁTICO activado"
     if [ ! -f ".env" ] && [ -f ".env.example" ]; then
@@ -104,6 +134,12 @@ if [ -f ".env" ]; then
     source .env
     USE_ENV_FILE=true
     
+    # Validar WINDOWS_SERVER_COUNT
+    if ! [[ "$WINDOWS_SERVER_COUNT" =~ ^[0-9]+$ ]] || [ "$WINDOWS_SERVER_COUNT" -lt 1 ]; then
+        print_warning "WINDOWS_SERVER_COUNT inválido ($WINDOWS_SERVER_COUNT), usando 1 por defecto"
+        WINDOWS_SERVER_COUNT=1
+    fi
+    
     # Mapeo de variables para compatibilidad en modo AUTO
     # Si usamos el formato nuevo (WINDOWS_1_...) pero el script espera las variables legacy para el primer server
     if [ -z "$SQL_SERVER_HOST" ] && [ ! -z "$WINDOWS_1_SQL_HOST" ]; then
@@ -118,7 +154,10 @@ else
     USE_ENV_FILE=false
 fi
 
-# Solicitar parámetros al usuario (Solo si NO es modo auto)
+# =============================================================================
+# ETAPA 3: RECOLECCIÓN DE PARÁMETROS (Modo Interactivo)
+# =============================================================================
+
 if [ "$AUTO_MODE" = false ]; then
     echo ""
     print_info "Configuración del servidor de infraestructura:"
@@ -270,7 +309,10 @@ EOF
     print_success "Configuración guardada en .env"
 fi
 
-# Aplicar configuración a los archivos
+# =============================================================================
+# ETAPA 4: CONFIGURACIÓN DE ARCHIVOS
+# =============================================================================
+
 print_info "Aplicando configuración a los archivos..."
 
 # Backup de archivos originales
@@ -284,7 +326,10 @@ if [ -f custom.ini ]; then
 fi
 print_success "Backup de archivos originales guardado en $backup_dir"
 
-# Configurar prometheus.yml para múltiples targets
+# -----------------------------------------------------------------------------
+# 4.1 Configurar Prometheus
+# -----------------------------------------------------------------------------
+
 print_info "Configurando Prometheus..."
 
 # Construir lista de targets para Windows Exporter
@@ -362,7 +407,10 @@ EOF
 
 print_success "Prometheus configurado con targets: Windows=[${WINDOWS_TARGETS}], SQL=[${MSSQL_TARGETS}]"
 
-# Configurar docker-compose.yml
+# -----------------------------------------------------------------------------
+# 4.2 Configurar Docker Compose
+# -----------------------------------------------------------------------------
+
 print_info "Generando configuración de Docker Compose..."
 
 # Hacemos una copia temporal
@@ -371,11 +419,12 @@ cp docker-compose.yml docker-compose.tmp.yml
 # Eliminar el servicio mssql-exporter estático si existe para regenerarlo dinámicamente
 # (O mantenerlo para el 1 y añadir los demás. Vamos a mantener el 1 como base y añadir los otros)
 
-# Configurar variables del primer servidor (mssql-exporter original)
-sed -i "s/SERVER=change_me/SERVER=${SQL_SERVER_HOST}/g" docker-compose.tmp.yml
-sed -i "s/USERNAME=change_me/USERNAME=${SQL_USERNAME}/g" docker-compose.tmp.yml
-sed -i "s/PASSWORD=change_me/PASSWORD=${SQL_PASSWORD}/g" docker-compose.tmp.yml
-sed -i "s/DATABASE=change_me/DATABASE=${SQL_DATABASE}/g" docker-compose.tmp.yml
+# Configurar variables del primer servidor (mssql-exporter original) - optimizado con una sola llamada sed
+sed -i -e "s/SERVER=change_me/SERVER=${SQL_SERVER_HOST}/g" \
+       -e "s/USERNAME=change_me/USERNAME=${SQL_USERNAME}/g" \
+       -e "s/PASSWORD=change_me/PASSWORD=${SQL_PASSWORD}/g" \
+       -e "s/DATABASE=change_me/DATABASE=${SQL_DATABASE}/g" \
+       docker-compose.tmp.yml
 
 # Ahora añadimos los servicios adicionales (del 2 en adelante)
 for (( i=2; i<=WINDOWS_SERVER_COUNT; i++ ))
@@ -429,14 +478,20 @@ sed -i "s/OPENSEARCH_INITIAL_ADMIN_PASSWORD=[^ ]*/OPENSEARCH_INITIAL_ADMIN_PASSW
 mv docker-compose.tmp.yml docker-compose.yml
 print_success "Docker Compose configurado con múltiples exportadores SQL"
 
-# 3. Configurar OTel Collector (Solo soporta 1 endpoint de OpenSearch por ahora, usa INFRA_SERVER_IP)
+# -----------------------------------------------------------------------------
+# 4.3 Configurar OTel Collector
+# -----------------------------------------------------------------------------
+
 print_info "Configurando OTel Collector para Windows..."
 sed -i.bak "s|http://change_me:9200|http://${INFRA_SERVER_IP}:9200|g" Endpoints/otel-config.yaml
 # Si ya estaba configurado:
 sed -i.bak "s|http://.*:9200|http://${INFRA_SERVER_IP}:9200|g" Endpoints/otel-config.yaml
 print_success "OTel Collector configurado"
 
-# 4. Configurar Grafana Dashboards
+# -----------------------------------------------------------------------------
+# 4.4 Configurar Grafana Dashboards
+# -----------------------------------------------------------------------------
+
 print_info "Configurando dashboards de Grafana..."
 # Backup de dashboards
 cp Grafana/dashboard_main_sw.json "$backup_dir/" 2>/dev/null || true
@@ -467,7 +522,10 @@ fi
 
 print_success "Dashboards de Grafana configurados"
 
-# 5. Configurar SMTP si está habilitado
+# -----------------------------------------------------------------------------
+# 4.5 Configurar SMTP (Opcional)
+# -----------------------------------------------------------------------------
+
 if [[ "$CONFIGURE_SMTP" =~ ^[Yy]$ ]]; then
     print_info "Configurando SMTP en Grafana..."
     cat > custom.ini << EOF
@@ -482,11 +540,12 @@ EOF
     print_success "SMTP configurado"
 fi
 
-# Limpiar archivos .bak
-rm -f *.bak Endpoints/*.bak Grafana/*.bak 2>/dev/null
+# Los archivos .bak se limpian automáticamente en cleanup (trap EXIT)
 
-echo ""
-print_info "Resumen de configuración:"
+# =============================================================================
+# ETAPA 5: RESUMEN DE CONFIGURACIÓN
+# =============================================================================
+
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "  Servidor Infra:     ${GREEN}${INFRA_SERVER_IP}${NC}"
 echo -e "  Clientes Windows:   ${GREEN}${WINDOWS_SERVER_COUNT}${NC}"
@@ -541,7 +600,19 @@ if [[ ! "$START_DEPLOYMENT" =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# Iniciar despliegue
+# Validar configuración de Docker Compose
+print_info "Validando configuración de Docker Compose..."
+if docker-compose config > /dev/null 2>&1; then
+    print_success "Configuración de Docker Compose válida"
+else
+    print_error "Configuración de Docker Compose inválida. Ejecuta 'docker-compose config' para ver detalles."
+    exit 1
+fi
+
+# =============================================================================
+# ETAPA 6: DESPLIEGUE DE SERVICIOS
+# =============================================================================
+
 echo ""
 print_info "Iniciando despliegue del stack..."
 echo ""
@@ -560,16 +631,18 @@ docker-compose up -d
 print_info "Esperando a que los servicios estén listos (esto puede tardar 30-60 segundos)..."
 sleep 30
 
-# Verificar servicios
-echo ""
+# =============================================================================
+# ETAPA 7: VERIFICACIÓN DE SERVICIOS
+# =============================================================================
+
 print_info "Verificando servicios..."
 echo ""
 
 # Verificar OpenSearch Cluster
 print_info "Verificando cluster OpenSearch..."
 for i in {1..10}; do
-    if curl -s http://localhost:9200/_cluster/health &> /dev/null; then
-        CLUSTER_HEALTH=$(curl -s http://localhost:9200/_cluster/health | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+    if curl -s --max-time 5 http://localhost:9200/_cluster/health &> /dev/null; then
+        CLUSTER_HEALTH=$(curl -s --max-time 5 http://localhost:9200/_cluster/health | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
         print_success "Cluster OpenSearch está corriendo (Status: ${CLUSTER_HEALTH})"
         break
     else
@@ -585,8 +658,10 @@ done
 print_info "Estado de los contenedores:"
 docker-compose ps
 
-echo ""
-echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
+# =============================================================================
+# ETAPA 8: FINALIZACIÓN
+# =============================================================================
+
 echo -e "${GREEN}║           ✓ DESPLIEGUE COMPLETADO CON ÉXITO              ║${NC}"
 echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
 echo ""
