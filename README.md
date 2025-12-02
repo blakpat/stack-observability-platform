@@ -392,7 +392,7 @@ Si deseas enviar logs y trazas desde aplicaciones Windows:
 
 1. Accede a OpenSearch Dashboards: http://IP_SERVIDOR_INFRA:5601
 2. Ve a **Stack Management > Index Patterns**
-3. Crea un index pattern: `windows-app-logs-sw`
+3. Crea un index pattern: `windows-index-1`
 4. Selecciona el campo de tiempo: `observedTimestamp`
 5. Ve a **Discover** y verifica que lleguen logs
 
