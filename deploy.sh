@@ -654,9 +654,37 @@ for i in {1..10}; do
     fi
 done
 
-# Verificar contenedores
+# Verificar contenedores y mostrar tabla unificada
 print_info "Estado de los contenedores:"
-docker-compose ps
+
+# Obtener IDs de contenedores
+CONTAINER_IDS=$(docker ps -q)
+
+if [ -z "$CONTAINER_IDS" ]; then
+    print_warning "No hay contenedores corriendo."
+else
+    # Encabezado
+    printf "\033[1;34m%-25s %-15s %-20s %-15s\033[0m\n" "NAME" "STATUS" "INTERNAL IP" "PORTS"
+    
+    # Iterar sobre cada contenedor para obtener datos
+    for id in $CONTAINER_IDS; do
+        # Obtener datos con docker inspect y docker ps
+        NAME=$(docker inspect --format '{{.Name}}' $id | sed 's/\///')
+        IP=$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $id)
+        STATUS=$(docker ps --filter "id=$id" --format "{{.Status}}")
+        PORTS=$(docker ps --filter "id=$id" --format "{{.Ports}}" | sed 's/0.0.0.0://g' | sed 's/::://g' | cut -c1-15)
+        
+        # Colorear Estado
+        if [[ "$STATUS" == *"Up"* ]]; then
+            STATUS_COLOR="\033[1;32mUp\033[0m"
+        else
+            STATUS_COLOR="\033[1;31mExited\033[0m"
+        fi
+        
+        # Imprimir fila formateada
+        printf "\033[1;36m%-25s\033[0m %-24b %-20s %-15s\n" "$NAME" "$STATUS_COLOR" "$IP" "$PORTS"
+    done
+fi
 
 # =============================================================================
 # ETAPA 8: FINALIZACIÓN

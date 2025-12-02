@@ -12,7 +12,7 @@ services:
       - discovery.seed_hosts=opensearch-node1,opensearch-node2,opensearch-node3
       - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2,opensearch-node3
       - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "OPENSEARCH_JAVA_OPTS=-Xms768m -Xmx768m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=oUqbVa23eeoPBG4vjZ
       - plugins.security.disabled=true
     ulimits:
@@ -30,6 +30,12 @@ services:
     networks:
       - observability
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1.5G
 
   ##########################
   # OpenSearch Node 2 #
@@ -43,7 +49,7 @@ services:
       - discovery.seed_hosts=opensearch-node1,opensearch-node2,opensearch-node3
       - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2,opensearch-node3
       - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "OPENSEARCH_JAVA_OPTS=-Xms768m -Xmx768m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=oUqbVa23eeoPBG4vjZ
       - plugins.security.disabled=true
     ulimits:
@@ -61,6 +67,12 @@ services:
     networks:
       - observability
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1.5G
 
   ##########################
   # OpenSearch Node 3 #
@@ -74,7 +86,7 @@ services:
       - discovery.seed_hosts=opensearch-node1,opensearch-node2,opensearch-node3
       - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2,opensearch-node3
       - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "OPENSEARCH_JAVA_OPTS=-Xms768m -Xmx768m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=oUqbVa23eeoPBG4vjZ
       - plugins.security.disabled=true
     ulimits:
@@ -92,6 +104,12 @@ services:
     networks:
       - observability
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1.5Gdocker 
 
   ##############################
   # OpenSearch Dashboards (UI) #
@@ -112,6 +130,12 @@ services:
     networks:
       - observability
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 384M
 
   #####################
   # Load Balancer (HA)#
@@ -130,6 +154,12 @@ services:
     networks:
       - observability
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
 
   ###########
   # Grafana #
@@ -149,6 +179,12 @@ services:
     networks:
       - observability
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 192M
 
   ###############
   # Prometheus  #
@@ -171,6 +207,12 @@ services:
     networks:
       - observability
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 768M
 
   ####################
   # MSSQL Exporter   #
@@ -188,6 +230,12 @@ services:
     networks:
       - observability
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 96M
     #################
     # Otel Collector#
     #################
@@ -203,6 +251,12 @@ services:
     networks:
       - observability
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 192M
 
 volumes:
   opensearch_data1:
