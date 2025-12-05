@@ -489,6 +489,18 @@ sed -i.bak "s|http://.*:9200|http://${INFRA_SERVER_IP}:9200|g" Endpoints/otel-co
 print_success "OTel Collector configurado"
 
 # -----------------------------------------------------------------------------
+# 4.4 Configurar Landing Page
+# -----------------------------------------------------------------------------
+
+print_info "Configurando Landing Page..."
+if [ -f "landing-page/index.html" ]; then
+    sed -i.bak "s/INFRA_SERVER_IP/${INFRA_SERVER_IP}/g" landing-page/index.html
+    print_success "Landing Page configurada"
+else
+    print_warning "Landing Page no encontrada, saltando configuración"
+fi
+
+# -----------------------------------------------------------------------------
 # 4.4 Configurar Grafana Dashboards
 # -----------------------------------------------------------------------------
 
@@ -695,6 +707,7 @@ echo -e "${GREEN}╚════════════════════
 echo ""
 
 print_info "URLs de acceso:"
+echo -e "  ${GREEN}•${NC} Landing Page:         ${GREEN}http://${INFRA_SERVER_IP}:8080${NC} ${YELLOW}← Punto de entrada${NC}"
 echo -e "  ${BLUE}•${NC} Grafana:              http://${INFRA_SERVER_IP}:3000"
 echo -e "  ${BLUE}•${NC} Prometheus:           http://${INFRA_SERVER_IP}:9090"
 echo -e "  ${BLUE}•${NC} OpenSearch Dashboards: http://${INFRA_SERVER_IP}:5601"

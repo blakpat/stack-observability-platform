@@ -46,18 +46,6 @@ El script te pedirá interactivamente:
 Una vez completado, el script:
 1. Guardará la configuración en un archivo `.env`
 2. Aplicará automáticamente los valores a todos los archivos de configuración
-3. Creará backups de los archivos originales
-4. Levantará todo el stack con `docker-compose`
-5. Verificará que los servicios estén corriendo correctamente
-
-### Despliegue Manual
-
-Si prefieres configurar manualmente, sigue la [guía detallada de instalación](#-gu%C3%ADa-de-instalaci%C3%B3n-y-configuraci%C3%B3n) más abajo.
-
----
-
-## Componentes del Stack
-
 ### Servicios Principales
 
 | Componente | Versión | Puerto(s) | Función |
@@ -80,6 +68,18 @@ Si prefieres configurar manualmente, sigue la [guía detallada de instalación](
 | **Jaeger** | 1.57 | 16686 | ⚠️ **DESHABILITADO** - Tracing distribuido |
 
 ---
+
+## 🏠 Landing Page - Punto de Entrada Único
+
+El stack incluye una **landing page moderna** que sirve como punto de entrada centralizado.
+
+### Acceso
+
+```
+http://<IP_SERVIDOR_INFRA>:8080
+```
+![landing](landing-page.png)
+
 
 ## Alta Disponibilidad (HA)
 
@@ -562,6 +562,7 @@ docker-compose up -d
 
 | Puerto | Servicio | Descripción |
 |--------|----------|-------------|
+| **8080** | **Landing Page** | **Punto de entrada web único** |
 | 3000 | Grafana | Interfaz web de visualización |
 | 9090 | Prometheus | Interfaz web y API |
 | **9200** | **Nginx Load Balancer** | **Punto de acceso único a OpenSearch** |

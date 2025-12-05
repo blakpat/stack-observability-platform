@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Observability Platform - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="30" cy="30" r="28" stroke="url(#gradient)" stroke-width="4" />
+                    <circle cx="30" cy="30" r="15" fill="url(#gradient)" />
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="60" y2="60">
+                            <stop offset="0%" stop-color="#667eea" />
+                            <stop offset="100%" stop-color="#764ba2" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <h1>Observability Platform</h1>
+            </div>
+            <p class="subtitle">Stack de Monitoreo y Observabilidad</p>
+        </header>
+
+        <div class="services-grid">
+            <!-- Grafana -->
+            <a href="http://INFRA_SERVER_IP:3000" class="service-card grafana" target="_blank">
+                <div class="card-icon">📊</div>
+                <h2>Grafana</h2>
+                <p>Visualización de métricas y dashboards</p>
+                <span class="card-footer">Puerto 3000</span>
+            </a>
+
+            <!-- OpenSearch Dashboards -->
+            <a href="http://INFRA_SERVER_IP:5601" class="service-card opensearch" target="_blank">
+                <div class="card-icon">🔍</div>
+                <h2>OpenSearch Dashboards</h2>
+                <p>Búsqueda y análisis de logs</p>
+                <span class="card-footer">Puerto 5601</span>
+            </a>
+
+            <!-- Prometheus -->
+            <a href="http://INFRA_SERVER_IP:9090" class="service-card prometheus" target="_blank">
+                <div class="card-icon">📈</div>
+                <h2>Prometheus</h2>
+                <p>Sistema de métricas y alertas</p>
+                <span class="card-footer">Puerto 9090</span>
+            </a>
+
+            <!-- OpenSearch API -->
+            <a href="http://INFRA_SERVER_IP:9200/_cluster/health?pretty" class="service-card api" target="_blank">
+                <div class="card-icon">🔧</div>
+                <h2>OpenSearch API</h2>
+                <p>API REST del cluster</p>
+                <span class="card-footer">Puerto 9200</span>
+            </a>
+        </div>
+
+        <div class="info-section">
+            <div class="info-card">
+                <h3>🚀 Stack Desplegado</h3>
+                <ul>
+                    <li><strong>OpenSearch:</strong> Cluster HA (3 nodos)</li>
+                    <li><strong>Prometheus:</strong> Recolección de métricas</li>
+                    <li><strong>Grafana:</strong> Visualización avanzada</li>
+                    <li><strong>OTel Collector:</strong> Telemetría unificada</li>
+                    <li><strong>Nginx:</strong> Load Balancer</li>
+                </ul>
+            </div>
+
+            <div class="info-card">
+                <h3>📚 Credenciales por Defecto</h3>
+                <ul>
+                    <li><strong>Grafana:</strong> admin / admin</li>
+                    <li><strong>OpenSearch:</strong> admin / [configurado en .env]</li>
+                </ul>
+                <p class="warning">⚠️ Cambia las credenciales en producción</p>
+            </div>
+
+            <div class="info-card">
+                <h3>🛠️ Comandos Útiles</h3>
+                <ul>
+                    <li><code>docker-compose ps</code> - Ver servicios</li>
+                    <li><code>docker-compose logs -f</code> - Ver logs</li>
+                    <li><code>docker stats</code> - Uso de recursos</li>
+                    <li><code>./deploy.sh --auto</code> - Re-desplegar</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer>
+            <p>Observability Platform v2.0 | Desplegado con ❤️</p>
+            <p class="github-link">
+                <a href="https://github.com/blakpat/stack-observability-platform" target="_blank">
+                    📦 Ver en GitHub
+                </a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Auto-actualizar estado de servicios (opcional)
+        document.addEventListener('DOMContentLoaded', function () {
+            const cards = document.querySelectorAll('.service-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function () {
+                    this.style.transform = 'translateY(-8px)';
+                });
+                card.addEventListener('mouseleave', function () {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
