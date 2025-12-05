@@ -109,7 +109,7 @@ services:
         limits:
           memory: 2G
         reservations:
-          memory: 1.5Gdocker 
+          memory: 1.5G
 
   ##############################
   # OpenSearch Dashboards (UI) #
